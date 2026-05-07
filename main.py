@@ -3,16 +3,18 @@ from fastapi.responses import JSONResponse, Response
 from http.client import HTTPException, HTTPResponse
 from typing import List, Optional
 from fastapi_pagination import add_pagination, Page
-from schemas.schema import UserDataSchema, MeteringDeviceSchema
+from schemas.schema import UserDataSchema, MeteringDeviceSchema, SensorDeviceSchema
 from dbapi.deps import get_async_session, Base, engine
 from models.model import UserDataModel, MeteringDeviceModel, SensorDeviceModel, MeterTypeStatus, SensorTypeStatus
-from dbapi.crud import get_user_data, get_metering_all
+from dbapi.crud import get_user_data, get_metering_all, get_sensors_all
 from sqlalchemy.ext.asyncio import AsyncSession
 from pwdlib import PasswordHash
 from sqlalchemy import update, select, delete, insert
 import dotenv
 from dotenv import dotenv_values
 from fastapi_pagination import pagination_ctx
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 env_conf = dotenv_values(".env_config")
@@ -27,7 +29,13 @@ description = 'Backend app'
 title = "RestAPI приложение - Metering Station App"
 
 app = FastAPI(title=title, description=description)
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # next.js
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # OK !
@@ -72,8 +80,11 @@ async def update_user_route(new_user: UserDataSchema, session: AsyncSession = De
     return new_user  
 
 
-# OK !
-@app.post("/meter-add",name="Metering add", status_code=status.HTTP_201_CREATED ,tags=["Meters & Sensors handlers"])
+# Meter & Counter's routers ------------------------------------------///-----------------------------------------
+
+
+
+@app.post("/meter-add",name="Metering add", status_code=status.HTTP_201_CREATED ,tags=["Meters handlers"])
 async def meter_add_route(metering_device: MeteringDeviceSchema, session: AsyncSession = Depends(get_async_session)):
     """Metering device adding router:\n
     Args:\n
@@ -108,7 +119,7 @@ async def meters_list_route(session: AsyncSession = Depends(get_async_session)):
 
 
 # OK !
-@app.put("/update-meter",name="Update Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters & Sensors handlers"])
+@app.put("/update-meter",name="Update Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters handlers"])
 async def meter_update_route(updated_item: MeteringDeviceSchema, session: AsyncSession = Depends(get_async_session)):
     """
     Update metering device:\n
@@ -133,7 +144,7 @@ async def meter_update_route(updated_item: MeteringDeviceSchema, session: AsyncS
 
 
 
-@app.delete("/delete-meter/{deleted_item_id}",name="Delete Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters & Sensors handlers"])
+@app.delete("/delete-meter/{deleted_item_id}",name="Delete Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters handlers"])
 async def meter_delete_route(deleted_item_id: int, session: AsyncSession = Depends(get_async_session)):
     """
     Delete metering device:\n
@@ -151,6 +162,42 @@ async def meter_delete_route(deleted_item_id: int, session: AsyncSession = Depen
             return deleted_item
         else:
             return {"details":"No item found"}
+
+# Sensors Methods &  Routes ----------------------------------------------- /// --------------------------------
+
+@app.post("/sensor-add",name="Sensor add", status_code=status.HTTP_201_CREATED ,tags=["Sensors handlers"])
+async def sensor_add_route(sensor_device: SensorDeviceSchema, session: AsyncSession = Depends(get_async_session)):
+    """Sensor device adding router:\n
+    Args:\n
+        sensor_device (MeteringDeviceSchema): _description_\n
+        session (AsyncSession, optional): _description_. Defaults to Depends(get_async_session).\n
+    Returns:\n
+        _type_: HTTP_201_CREATED\n
+    """
+    async with session as db:
+        new_device = SensorDeviceModel(**sensor_device.model_dump())
+        db.add(new_device)
+        await db.commit()
+        await db.refresh(new_device)
+        return new_device
+    
+
+# Получить все счетчики - значение items
+@app.get("/sensors-list",name="Sensors List", 
+         status_code=status.HTTP_200_OK, 
+         tags=["Sensors handlers"],
+         response_model=List[SensorDeviceSchema]) 
+
+async def sensor_list_route(session: AsyncSession = Depends(get_async_session)):
+    """ Get all sensor devices list:\n
+    Args:\n
+        session (AsyncSession, optional): _description_. Defaults to Depends(get_async_session).\n
+    Returns:\n
+        _type_: List[MeterinDeviceSchema]\n
+    """
+    result_list = await get_sensors_all(session=session)
+    return result_list
+
 
 
 

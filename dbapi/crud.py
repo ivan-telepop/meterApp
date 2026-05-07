@@ -65,3 +65,12 @@ async def get_metering_all(session: AsyncSession) -> List[MeteringDeviceSchema]:
         return result.scalars().all()
 
     
+# Sensors ------------------------ // ----------------------------------------
+
+
+async def get_sensors_all(session: AsyncSession) -> List[SensorDeviceSchema]:
+    """Sensors Devices get all"""
+    stmt = select(SensorDeviceModel)
+    async with session as db:
+        result = await db.execute(stmt)
+        return result.scalars().all()
