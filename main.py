@@ -196,6 +196,10 @@ async def meter_delete_route(deleted_item_id: int, session: AsyncSession = Depen
 
 # Sensors Methods &  Routes ----------------------------------------------- /// --------------------------------
 
+
+
+
+
 @app.post("/sensor-add",name="Sensor add", status_code=status.HTTP_201_CREATED ,tags=["Sensors handlers"])
 async def sensor_add_route(sensor_device: SensorDeviceSchema, session: AsyncSession = Depends(get_async_session)):
     """Sensor device adding router:\n
