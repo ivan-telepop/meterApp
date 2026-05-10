@@ -43,14 +43,14 @@ async def create_user_data(
 # СЧЕТЧИКИ 
 
 #  Получение одного девайса по типу и имени
-async def get_metering_device(session: AsyncSession, name: Optional[str] = None, type: Optional[str] = None):
+async def get_metering_device(session: AsyncSession, id: Optional[int] = None, name: Optional[str] = None, type: Optional[str] = None):
     """Асинхронная функция для получения metering device по типу и имени. \n
      параметры извлечения:
      name: str \n
      type: str \n
      """
     async with session as db:
-        stmt = select(MeteringDeviceModel).where((MeteringDeviceModel.name == name) | (MeteringDeviceModel.type == type))
+        stmt = select(MeteringDeviceModel).where(or_(MeteringDeviceModel.id == id, MeteringDeviceModel.name == name, MeteringDeviceModel.type == type))
         res = await db.execute(stmt)
         device = res.scalars().first()
         return device

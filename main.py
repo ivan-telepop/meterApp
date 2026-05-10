@@ -3,10 +3,10 @@ from fastapi.responses import JSONResponse, Response
 from http.client import HTTPException, HTTPResponse
 from typing import List, Optional
 from fastapi_pagination import add_pagination, Page
-from schemas.schema import UserDataSchema, MeteringDeviceSchema, SensorDeviceSchema
+from schemas.schema import UserDataSchema, MeteringDeviceSchema, SensorDeviceSchema, UserLoginSchema
 from dbapi.deps import get_async_session, Base, engine
 from models.model import UserDataModel, MeteringDeviceModel, SensorDeviceModel, MeterTypeStatus, SensorTypeStatus
-from dbapi.crud import get_user_data, get_metering_all, get_sensors_all
+from dbapi.crud import get_user_data, get_metering_all, get_sensors_all, get_metering_device
 from sqlalchemy.ext.asyncio import AsyncSession
 from pwdlib import PasswordHash
 from sqlalchemy import update, select, delete, insert
@@ -29,10 +29,11 @@ description = 'Backend app'
 title = "RestAPI приложение - Metering Station App"
 
 app = FastAPI(title=title, description=description)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # next.js
-    allow_credentials=True,
+    allow_credentials=False, #True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,7 +48,7 @@ async def index_route():
 
 # OK !
 @app.post("/login-user",name="Login User",tags=["User Data handlers"],status_code=status.HTTP_202_ACCEPTED)  #pagination_ctx(Page[UserDataSchema]))])
-async def login_user_route(login: str, password: str, session: AsyncSession = Depends(get_async_session)):
+async def login_user_route(login_data: UserLoginSchema, session: AsyncSession = Depends(get_async_session)):
     """Login User Router: returns 202_accepted http response,\n
        also returns json object with user data. \n
     Args:\n
@@ -58,8 +59,8 @@ async def login_user_route(login: str, password: str, session: AsyncSession = De
     Returns:\n
         _type_: HTTP_202\n
     """
-    actual_user = await get_user_data(session=session,login=login)
-    if password_hasher.verify(password, actual_user.password):
+    actual_user = await get_user_data(session=session,login=login_data.login)
+    if password_hasher.verify(login_data.password, actual_user.password):
         return actual_user
     
 
@@ -81,10 +82,14 @@ async def update_user_route(new_user: UserDataSchema, session: AsyncSession = De
 
 
 # Meter & Counter's routers ------------------------------------------///-----------------------------------------
+METER_RESPONSES = {
+        200: {"description": "Successfully"},
+        204: {"description": "Item not found"},
+        202:  {"description": "Created successfuly"},
+    }
 
 
-
-@app.post("/meter-add",name="Metering add", status_code=status.HTTP_201_CREATED ,tags=["Meters handlers"])
+@app.post("/meter-add",name="Metering add", status_code=status.HTTP_201_CREATED ,tags=["Meters handlers"],responses=METER_RESPONSES)
 async def meter_add_route(metering_device: MeteringDeviceSchema, session: AsyncSession = Depends(get_async_session)):
     """Metering device adding router:\n
     Args:\n
@@ -104,8 +109,9 @@ async def meter_add_route(metering_device: MeteringDeviceSchema, session: AsyncS
 # Получить все счетчики - значение items
 @app.get("/meters-list",name="Meters List", 
          status_code=status.HTTP_200_OK, 
-         tags=["Meters & Sensors handlers"],
-         response_model=List[MeteringDeviceSchema]) 
+         tags=["Meters handlers"],
+         response_model=List[MeteringDeviceSchema],
+         responses=METER_RESPONSES) 
 
 async def meters_list_route(session: AsyncSession = Depends(get_async_session)):
     """ Get all metering devices list:\n
@@ -118,8 +124,33 @@ async def meters_list_route(session: AsyncSession = Depends(get_async_session)):
     return result_list
 
 
+@app.get("/meters-get-by/{id}",name="Meters Get One By ID", 
+         status_code=status.HTTP_200_OK, 
+         tags=["Meters handlers"],
+         responses=METER_RESPONSES
+         )
+
+async def meters_get_one_by_id_route(id: int, session: AsyncSession = Depends(get_async_session)):
+    """ Get metering devices by id:\n
+    Args:\n
+        session (AsyncSession, optional): _description_. Defaults to Depends(get_async_session).\n
+    Returns:\n
+        _type_: List[MeterinDeviceSchema]\n
+    """
+    async with session as db:
+        item = await db.get(MeteringDeviceModel,id)
+        if item is not None:
+            return item
+        else:
+           return Response(status_code=status.HTTP_204_NO_CONTENT, media_type="application/json")
+
+
+
+
+
+
 # OK !
-@app.put("/update-meter",name="Update Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters handlers"])
+@app.put("/update-meter",name="Update Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters handlers"], responses=METER_RESPONSES)
 async def meter_update_route(updated_item: MeteringDeviceSchema, session: AsyncSession = Depends(get_async_session)):
     """
     Update metering device:\n
@@ -144,7 +175,7 @@ async def meter_update_route(updated_item: MeteringDeviceSchema, session: AsyncS
 
 
 
-@app.delete("/delete-meter/{deleted_item_id}",name="Delete Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters handlers"])
+@app.delete("/delete-meter/{deleted_item_id}",name="Delete Meter", status_code=status.HTTP_202_ACCEPTED ,tags=["Meters handlers"],responses=METER_RESPONSES)
 async def meter_delete_route(deleted_item_id: int, session: AsyncSession = Depends(get_async_session)):
     """
     Delete metering device:\n

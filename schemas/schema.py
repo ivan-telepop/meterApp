@@ -15,6 +15,11 @@ class UserDataSchema(BaseModel):
     token: str
     remote_url: str
 
+class UserLoginSchema(BaseModel):
+    """Pydantic схема для получения данных"""
+    login: str
+    password: str
+
 class MeteringDeviceSchema(BaseModel):
     """Pydantic схема для получения данных"""
     id: int

@@ -11,6 +11,7 @@ class MeterTypeStatus(str, Enum):
     hot_water = "горячая вода"
     electricity = "электричество"
     heat_metering = "тепловая энергия"
+    gas_fluid = "природный газ"
 
 class SensorTypeStatus(str, Enum):
     """Choices for Sensor INPUT/OUTPUT"""
