@@ -204,7 +204,7 @@ async def meter_delete_route(deleted_item_id: int, session: AsyncSession = Depen
 async def sensor_add_route(sensor_device: SensorDeviceSchema, session: AsyncSession = Depends(get_async_session)):
     """Sensor device adding router:\n
     Args:\n
-        sensor_device (MeteringDeviceSchema): _description_\n
+        sensor_device (SensorDeviceSchema): _description_\n
         session (AsyncSession, optional): _description_. Defaults to Depends(get_async_session).\n
     Returns:\n
         _type_: HTTP_201_CREATED\n
