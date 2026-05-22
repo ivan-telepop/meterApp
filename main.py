@@ -104,6 +104,7 @@ async def meter_add_route(metering_device: MeteringDeviceSchema, session: AsyncS
         await db.commit()
         await db.refresh(new_device)
         return new_device
+    #return metering_device
 
 
 # Получить все счетчики - значение items
