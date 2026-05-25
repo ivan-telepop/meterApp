@@ -51,7 +51,7 @@ class MeteringDeviceModel(Base):
     send_remote: str
     """
     __tablename__ = "meter"
-    id = Column(Integer, primary_key=True, index=True, autoincrement="auto")
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String, index=True)
     type = Column(UNIEnum(MeterTypeStatus), index=True, default=MeterTypeStatus.electricity)
     initial_value = Column(Text, index=True)
